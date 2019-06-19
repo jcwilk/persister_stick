@@ -1,0 +1,1 @@
+xset m 0/10 4 c off r rate 660 25 s off -dpms
