@@ -1,0 +1,82 @@
+Quickie system config persister
+
+Still WIP but it's beginning to solidify enough to write about it.
+
+Basically just designed to be as simple as possible and easy to understand and debug.
+
+It's designed for use with puppy linux as a way to version control persisted changes from the frozen puppy and
+apply them manually, post-boot. Currently it's designed for android development but it would be well suited to
+be branched for other use cases, eg ruby on rails development, which I'm sure I'll do eventually. Alternatively,
+different scripts could handle setting up different environments.
+
+The idea is that it's very quick to save/edit new changes to be persisted in this paradigm but also forces you to
+be very intentional about what gets kept. It's my hope that by using version control I can minimize the chances of
+unintended changes to the system either from myself or an adversarial program/user.
+
+It's also designed to avoid excessive writes to the flash drive (copy rather than link things that might change) to
+maximize the lifetime of the drive. With a little tweaking it could be burned to a cd or stored in a write-protected
+flash drive to eliminate the chances of it becoming compromised without physical tampering. At time of writing the
+main blocker there would be the java/android stuff, they would have to get copied rather than linked which would
+probably require more than 8GB of ram to operate comfortably.
+
+
+Directories:
+android - not versioned, these get linked to save on space, contains four folders from ~:
+.android Android .AndroidStudio3.4 .java
+
+fs - versioned, these get copied as we don't want to pick up any changes from the live system by default
+
+jdk... - not versioned, this has to be fetched and unzipped in the project folder
+
+privatefs - not versioned or versioned separately, same as fs but it's for private configs and keys that shouldn't go onto public github
+
+
+Scripts:
+
+link_android.sh - Link all the files stored in "android" into the root home directory directory
+
+load_fs.sh - Copy all files under "fs" and "privatefs" into the filesystem according to their relative path.
+Empty leaf folders are ignored.
+
+store_private.sh "path" - Copy the file at "path" into the correctly expanded place under privatefs
+
+store_public.sh "path" - Same as store_private.sh but places under fs instead of privatefs
+
+
+First-time steps to build persister stick from source:
+
+- Build flash drive "A" by making a puppy linux usb stick (see puppy linux site) this one was built using a remaster of the ubuntu puppy but it may work for other puppies
+- Run the puppy, remove and keep A while it's running (it gets fully loaded into RAM)
+- Insert a new flash drive, "B", and format as desired. I suggest exfs or ext4
+- Clone repo into a folder in B, let's say B/persister/
+- Run B/persister/load_fs.sh
+- If desired, customize puppy further and keep track of all folders and files you change
+  - "find $path_to_search -mmin -5" to find files changed in the last 5 minutes under some variable eg $path_to_search
+  - for every file and/or folder (empty folders ignored) you want to persist, call B/persister/store_private.sh path_to_item
+  - if you want to make new commits to your own branch or fork then consider using store_public.sh instead to store changes to be versioned
+  - consider making a quick git repo under B/persister/privatefs to track your changes. Write down the first few characters of the SHA if you're paranoid :P
+For the rest of the steps, use a separate folder under B as scratch space (rather than ~/Downloads/) since the flash drive is probably bigger than your ramdisk
+- Download most recent oracle java v8 and extract jdk folder into root of repo (see .gitignore)
+- run B/persister/link_android.sh to setup java under /usr/lib/jvm/ via links
+- Download android studio, run it until you've configured it to your wishes and are ready to start programming
+- Copy all new files added by android studio under ~/ to B/persister/android/
+- I recommend keeping the android studio folder under B/ next to persister
+
+Persist changes to an existing persister stick that's already running:
+
+- If you intend to use the repository for versioning
+  - Pass all files you want versioned in this repo into persister/store_public.sh path_to_file_or_folder one at a time or with a loop (sorry)
+  - Review git status/diff, set up the branch you want, etc, commit and ideally push to your own fork on github to lock down your SHA externally
+- Excluding any files from the previous lines, pass all the rest of the newly changed/added files to persister/store_private.sh path_to_file_or_folder
+  - This stores files into persister/privatefs/ which is untracked. You may want to track these files in your own way, perhaps with syncthing or a separate git repo
+- Any already persisted files you want removed must be done manually, it does not currently pick up removed files
+
+BUGS:
+- store scripts do not correctly handle spaces in source paths. I'm screwing up the space escaping somehow but haven't yet found the exact issue
+
+TODO:
+- Get android studio fully working and building projects, perhaps with a simple example project as a baseline
+- Build store_android.sh script
+- Build tooling for better automating first time setup of a persister stick
+- Build tooling to search for removed files by checking to see if every persisted file still exists
+- Build tooling for finding a diff between persisted changes and current changes
