@@ -12,6 +12,7 @@ done
 find . -mindepth 1 -maxdepth 1 -type d -iname 'jdk*' -printf '%P\n' | while read file
 do
   echo "deleting and linking $file" &&
+  mkdir -p "/usr/lib/jvm" &&
   rm -rf "/usr/lib/jvm/$file" && #nothing bad here either, I'm sure ;) :*
   ln -s "$PWD/$file" /usr/lib/jvm/ &&
   rm -f "/usr/lib/jvm/default-java" &&
